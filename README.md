@@ -71,3 +71,6 @@ Control signals:
 ## Example Configuration
 Torus size: 5×5  
 Matrix size: 4×4 
+
+## Synthesis Results
+The Torus module was synthesized in Vivado 2019.
