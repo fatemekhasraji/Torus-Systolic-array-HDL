@@ -1,6 +1,6 @@
 # Torus-Based MMULT Accelerator in Verilog
 A synthesizable Verilog implementation of matrix multiplication on a 2D Torus interconnection network using Processing Elements (PEs), custom controller FSM, and systolic-style data movement.  
-The project models parallel matrix multiplication using cyclic data propagation between neighboring PEs and was developed as part of a Parallel Processing course project.
+The project models parallel matrix multiplication using cyclic data propagation between neighboring PEs and was developed as part of a Parallel Processing course assignment.
 
 ## Overview
 This project implements:
