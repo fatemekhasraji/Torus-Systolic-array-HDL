@@ -53,4 +53,21 @@ The controller manages:
 The FSM coordinates systolic data propagation and computation timing across the Torus array.
 <img width="551" height="786" alt="image" src="https://github.com/user-attachments/assets/1e692bb4-16de-4220-adbc-2d05b38bf050" />
 
+Computation Flow
+1. Reset network
+2. Initialize PE inputs
+3. Propagate matrix values through Torus links
+4. Perform MAC operations in parallel
+5. Accumulate local partial sums
+6. Collect final outputs
+7. Transpose final matrix
 
+Control signals:
+ - START
+ - MOVE
+ - MULT_ADD
+ - FINISH
+ - Simulation
+## Example Configuration
+Torus size: 5×5  
+Matrix size: 4×4 
