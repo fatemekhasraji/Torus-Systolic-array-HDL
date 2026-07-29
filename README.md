@@ -1,76 +1,68 @@
-# Torus-Based MMULT Accelerator in Verilog
-A synthesizable Verilog implementation of matrix multiplication on a 2D Torus interconnection network using Processing Elements (PEs), custom controller FSM, and systolic-style data movement.  
-The project models parallel matrix multiplication using cyclic data propagation between neighboring PEs and was developed as part of a Parallel Processing course assignment.
+# 2D Torus Systolic Array Hardware Engine in Verilog
 
-## Overview
-This project implements:
-- A 2D Torus-based processing array
-- Parameterized Processing Elements (PEs)
-- FSM-based controller
-- Parallel matrix multiplication
-- Cyclic data movement using Torus topology
-- Synthesizable Verilog RTL
-- Functional simulation and synthesis analysis  
+![Language](https://img.shields.io/badge/Language-Verilog-blue)
+![Tools](https://img.shields.io/badge/EDA-Xilinx%20Vivado%202019.1-red)
+![Topology](https://img.shields.io/badge/Topology-2D%20Torus%20Grid-purple)
+![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-The architecture follows a systolic/Torus-style dataflow where matrix elements continuously circulate through the network instead of being streamed repeatedly from external memory.
-## Architecture
-Unlike a conventional mesh, the last row/column in the Torus network wraps around and connects back to the first row/column.
-This allows:
-- Continuous data circulation
-- Reduced external bandwidth requirements
-- Reuse of matrix elements across PEs
-- Efficient parallel MAC operations
+## 📌 Overview
+This repository contains a **synthesizable Verilog implementation of a 2D Torus-based Systolic Array Accelerator** for parallel matrix multiplication. 
 
-The implemented topology supports scalable matrix multiplication using parameterized dimensions.
-## Processing Element (PE)
-Each PE is parameterized and responsible for:
-- Receiving data from top and left neighbors
-- Performing Multiply-Accumulate (MAC)
-- Forwarding values to neighboring PEs
-- Accumulating partial sums locally
-### PE Features
-- Signed arithmetic
-- Parameterized bitwidth
-- Parameterized matrix size
-- Synchronous reset
-- Synthesizable RTL
-- Local accumulation register
-<img width="1042" height="465" alt="image" src="https://github.com/user-attachments/assets/08177d4d-d0f6-4d6b-b6d9-03fdfd8d40eb" />
+Unlike standard 2D mesh arrays, the **Torus topology** cyclically connects array boundary edges—wrapping the rightmost outputs back into the leftmost inputs and bottommost outputs back into the top inputs. This cyclic data movement allows matrix elements to continuously circulate through the processing grid, eliminating global data broadcast bottlenecks and drastically reducing external memory bandwidth requirements.
 
-## Controller FSM
-The controller manages:
-- Initialization
-- Data movement
-- MAC scheduling
-- Computation termination
-- FSM States
-  - Reset
-  - Init
-  - Move
-  - Mult_Add
-  - Finish
- 
-The FSM coordinates systolic data propagation and computation timing across the Torus array.
-<img width="551" height="786" alt="image" src="https://github.com/user-attachments/assets/1e692bb4-16de-4220-adbc-2d05b38bf050" />
+> 🌟 **Deep Learning Application**: This Torus microkernel engine serves as the compute datapath for the [FPGA Accelerator of LeNet-5 CNN for Fashion-MNIST](https://github.com/fatemekhasraji/FashionMnist_LeNet5).
 
-Computation Flow
-1. Reset network
-2. Initialize PE inputs
-3. Propagate matrix values through Torus links
-4. Perform MAC operations in parallel
-5. Accumulate local partial sums
-6. Collect final outputs
-7. Transpose final matrix
+---
 
-Control signals:
- - START
- - MOVE
- - MULT_ADD
- - FINISH
- - Simulation
-## Example Configuration
-Torus size: 5×5  
-Matrix size: 4×4 
+## 🏗 System Architecture & Datapath
 
-## Synthesis Results
-The Torus module was synthesized in Vivado 2019.
+```mermaid
+graph TD
+    subgraph Controller_FSM["Hardware Controller FSM (Controller.v)"]
+        FSM["Controller FSM<br/>S_IDLE → S_PRIME → S_RUN → S_DONE"]
+        FSM -->|MULT_ADD| MAC_CTRL["MULT_ADD = Enable MAC"]
+        FSM -->|MOVE| MOVE_CTRL["MOVE = Shift Torus Registers"]
+        FSM -->|FINISH| FIN_CTRL["FINISH = Computation Complete"]
+    end
+
+    subgraph Skew_Logic["Diagonal Index Skew Unit (SA.v)"]
+        A_IN["Matrix A Input"] --> SKEW_A["up[r][c] = Matrix_A[c][temp]"]
+        B_IN["Matrix B Input"] --> SKEW_B["left[r][c] = Matrix_B[temp][r]"]
+        NOTE_TEMP["temp = (N - ((r + 1 + c) % N)) % N"]
+    end
+
+    subgraph Torus_Grid["5×5 Torus PE Grid (SA.v)"]
+        direction TB
+        subgraph R0["Row 0 PEs"]
+            PE00["PE(0,0)"] -->|right| PE01["PE(0,1)"] -->|right| PE02["PE(0,2)"] -->|right| PE03["PE(0,3)"] -->|right| PE04["PE(0,4)"]
+        end
+        subgraph R1["Row 1 PEs"]
+            PE10["PE(1,0)"] -->|right| PE11["PE(1,1)"] -->|right| PE12["PE(1,2)"] -->|right| PE13["PE(1,3)"] -->|right| PE14["PE(1,4)"]
+        end
+        subgraph R4["Row 4 PEs (Bottom)"]
+            PE40["PE(4,0)"] -->|right| PE41["PE(4,1)"] -->|right| PE42["PE(4,2)"] -->|right| PE43["PE(4,3)"] -->|right| PE44["PE(4,4)"]
+        end
+
+        PE00 -->|down| PE10
+        PE04 -->|down| PE14
+        PE10 -.->|down| PE40
+        PE14 -.->|down| PE44
+
+        PE04 -.->|Horizontal Wrap| PE00
+        PE14 -.->|Horizontal Wrap| PE10
+        PE44 -.->|Horizontal Wrap| PE40
+
+        PE40 -.->|Vertical Wrap| PE00
+        PE44 -.->|Vertical Wrap| PE04
+    end
+
+    subgraph PE_Module["PE Internal Engine (PE.v)"]
+        PE_IN_U["up"] --> PE_OUT_D["down = up"]
+        PE_IN_L["left"] --> PE_OUT_R["right = left"]
+        PE_IN_U & PE_IN_L --> PE_MAC["16×16 Signed Mult >>> FRAC_BITS"]
+        PE_MAC --> PE_PROD["prod [31:0] Output"]
+    end
+
+    Skew_Logic -->|START Signal| Torus_Grid
+    Controller_FSM -->|MOVE & MULT_ADD Signals| Torus_Grid
+    Torus_Grid -->|FINISH Signal| OUT["Matrix C Output [799:0]"]
