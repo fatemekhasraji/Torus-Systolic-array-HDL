@@ -16,58 +16,6 @@ Unlike standard 2D mesh arrays, the **Torus topology** cyclically connects array
 
 ## 🏗 System Architecture & Datapath
 
-```mermaid
-graph TD
-    subgraph Controller_FSM["Hardware Controller FSM (Controller.v)"]
-        FSM["Controller FSM<br/>S_IDLE → S_PRIME → S_RUN → S_DONE"]
-        FSM -->|MULT_ADD| MAC_CTRL["MULT_ADD = Enable MAC"]
-        FSM -->|MOVE| MOVE_CTRL["MOVE = Shift Torus Registers"]
-        FSM -->|FINISH| FIN_CTRL["FINISH = Computation Complete"]
-    end
-
-    subgraph Skew_Logic["Diagonal Index Skew Unit (SA.v)"]
-        A_IN["Matrix A Input"] --> SKEW_A["up[r][c] = Matrix_A[c][temp]"]
-        B_IN["Matrix B Input"] --> SKEW_B["left[r][c] = Matrix_B[temp][r]"]
-        NOTE_TEMP["temp = (N - ((r + 1 + c) % N)) % N"]
-    end
-
-    subgraph Torus_Grid["5×5 Torus PE Grid (SA.v)"]
-        direction TB
-        subgraph R0["Row 0 PEs"]
-            PE00["PE(0,0)"] -->|right| PE01["PE(0,1)"] -->|right| PE02["PE(0,2)"] -->|right| PE03["PE(0,3)"] -->|right| PE04["PE(0,4)"]
-        end
-        subgraph R1["Row 1 PEs"]
-            PE10["PE(1,0)"] -->|right| PE11["PE(1,1)"] -->|right| PE12["PE(1,2)"] -->|right| PE13["PE(1,3)"] -->|right| PE14["PE(1,4)"]
-        end
-        subgraph R4["Row 4 PEs (Bottom)"]
-            PE40["PE(4,0)"] -->|right| PE41["PE(4,1)"] -->|right| PE42["PE(4,2)"] -->|right| PE43["PE(4,3)"] -->|right| PE44["PE(4,4)"]
-        end
-
-        PE00 -->|down| PE10
-        PE04 -->|down| PE14
-        PE10 -.->|down| PE40
-        PE14 -.->|down| PE44
-
-        PE04 -.->|Horizontal Wrap| PE00
-        PE14 -.->|Horizontal Wrap| PE10
-        PE44 -.->|Horizontal Wrap| PE40
-
-        PE40 -.->|Vertical Wrap| PE00
-        PE44 -.->|Vertical Wrap| PE04
-    end
-
-    subgraph PE_Module["PE Internal Engine (PE.v)"]
-        PE_IN_U["up"] --> PE_OUT_D["down = up"]
-        PE_IN_L["left"] --> PE_OUT_R["right = left"]
-        PE_IN_U & PE_IN_L --> PE_MAC["16×16 Signed Mult >>> FRAC_BITS"]
-        PE_MAC --> PE_PROD["prod [31:0] Output"]
-    end
-
-    Skew_Logic -->|START Signal| Torus_Grid
-    Controller_FSM -->|MOVE & MULT_ADD Signals| Torus_Grid
-    Torus_Grid -->|FINISH Signal| OUT["Matrix C Output [799:0]"]
-```
-
 ## ⚡ Processing Element (PE) Design
 Each **Processing Element (`PE.v`)** operates as a local Multiply-Accumulate (MAC) engine:
 * **Datapath**: $16 \times 16$-bit signed multiplication with 32-bit local accumulation register (`psum`).
@@ -78,15 +26,8 @@ Each **Processing Element (`PE.v`)** operates as a local Multiply-Accumulate (MA
 
 ## 🕹 Controller Finite State Machine (FSM)
 
-The hardware controller (`Controller.v`) manages systolic tile sequencing through four discrete states:
-
-```
-  +--------+    START    +---------+             +--------+    step_cnt >= N    +--------+
-  | S_IDLE | ----------> | S_PRIME | ----------> | S_RUN  | -----------------> | S_DONE |
-  +--------+             +---------+             +--------+                         +--------+
-      ^                                                                                 |
-      +---------------------------------------------------------------------------------+
-```
+The FSM coordinates systolic data propagation and computation timing across the Torus array.
+<img width="551" height="786" alt="image" src="https://github.com/user-attachments/assets/1e692bb4-16de-4220-adbc-2d05b38bf050" />
 
 | State | Control Signals | Function |
 | :--- | :--- | :--- |
