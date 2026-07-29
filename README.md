@@ -15,7 +15,7 @@ Unlike standard 2D mesh arrays, the **Torus topology** cyclically connects array
 ---
 
 ## 🏗 System Architecture & Datapath
-![An example of data movement in Torus](img/your_image.png)
+![An example of data movement in Torus](img/Data_move.png)
 
 
 ## ⚡ Processing Element (PE) Design
