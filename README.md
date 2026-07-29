@@ -15,6 +15,7 @@ Unlike standard 2D mesh arrays, the **Torus topology** cyclically connects array
 ---
 
 ## 🏗 System Architecture & Datapath
+<img width="1042" height="465" alt="image" src="https://github.com/user-attachments/assets/08177d4d-d0f6-4d6b-b6d9-03fdfd8d40eb" />
 
 ## ⚡ Processing Element (PE) Design
 Each **Processing Element (`PE.v`)** operates as a local Multiply-Accumulate (MAC) engine:
