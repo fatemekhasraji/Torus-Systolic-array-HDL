@@ -66,3 +66,83 @@ graph TD
     Skew_Logic -->|START Signal| Torus_Grid
     Controller_FSM -->|MOVE & MULT_ADD Signals| Torus_Grid
     Torus_Grid -->|FINISH Signal| OUT["Matrix C Output [799:0]"]
+```
+
+## ⚡ Processing Element (PE) Design
+Each **Processing Element (`PE.v`)** operates as a local Multiply-Accumulate (MAC) engine:
+* **Datapath**: $16 \times 16$-bit signed multiplication with 32-bit local accumulation register (`psum`).
+* **Direct Routing**: Assigns `down = up` and `right = left` for zero-latency pass-through to adjacent PEs.
+* **Q8.8 Fixed-Point Normalization**: Right-shifts multiplication product by `FRAC_BITS` (8 bits) before accumulating.
+
+---
+
+## 🕹 Controller Finite State Machine (FSM)
+
+The hardware controller (`Controller.v`) manages systolic tile sequencing through four discrete states:
+
+```
+  +--------+    START    +---------+             +--------+    step_cnt >= N    +--------+
+  | S_IDLE | ----------> | S_PRIME | ----------> | S_RUN  | -----------------> | S_DONE |
+  +--------+             +---------+             +--------+                         +--------+
+      ^                                                                                 |
+      +---------------------------------------------------------------------------------+
+```
+
+| State | Control Signals | Function |
+| :--- | :--- | :--- |
+| `S_IDLE` | `MOVE=0`, `MULT_ADD=0` | Waits for high assertion on `START`. |
+| `S_PRIME`| `MOVE=0`, `MULT_ADD=1` | Computes first MAC product for initial skewed inputs. |
+| `S_RUN`  | `MOVE=1`, `MULT_ADD=1` | Cyclically shifts Torus registers and accumulates partial products across $N-1$ cycles. |
+| `S_DONE` | `FINISH=1` | Signals computation completion and holds result in `Matrix_C`. |
+
+---
+
+## 📊 Synthesis & Resource Utilization Benchmarks
+
+The core $5 \times 5$ Torus microkernel was synthesized targeting a **Xilinx Artix-7 XC7A100T FPGA** (`xc7a100tcsg324-1`) using Xilinx Vivado 2019.1 Out-Of-Context synthesis:
+
+| Resource Metric | Used | Available | Utilization (%) | Notes / Hardware Insight |
+| :--- | :--- | :--- | :--- | :--- |
+| **Slice LUTs** | **1,616** | 63,400 | **2.55%** | Combinational logic & adder trees |
+| **Slice Registers** | **3,206** | 126,800 | **2.53%** | Flip-Flops & Torus shift registers |
+| **DSP48E1 Multipliers**| **25** | 240 | **10.42%** | Exactly 25 DSPs for 5x5 PE grid |
+| **Block RAM (BRAM)** | **0** | 135 | **0.00%** | Compute engine uses register streaming |
+| **Worst Negative Slack**| **+2.129 ns**| - | - | Positive setup slack @ 100 MHz |
+| **Max Frequency ($f_{max}$)**| **127.05 MHz**| - | - | High throughput & low routing congestion |
+
+---
+
+## 🛠 Project Structure
+
+```
+torus-systolic-array-verilog/
+├── README.md                # Project documentation
+├── LICENSE                  # MIT License
+├── rtl/                     # Synthesizable Verilog Source Files
+│   ├── Controller.v         # FSM Tile Controller
+│   ├── PE.v                 # Processing Element MAC engine
+│   └── SA.v                 # 2D Torus Systolic Array top module
+└── tb/                      # Testbenches
+    └── tb_direct_torus.v    # Simulation testbench
+```
+
+---
+
+## 🚀 How to Run Simulation
+
+### Via Xilinx Vivado XSim GUI / Command Line:
+1. Open Vivado and load the source files from `rtl/` and testbench from `tb/`.
+2. Set `tb_direct_torus` as the top simulation module.
+3. Run behavioral simulation for `200 ns`.
+
+### Via Icarus Verilog (`iverilog`):
+```bash
+iverilog -o torus_sim rtl/Controller.v rtl/PE.v rtl/SA.v tb/tb_direct_torus.v
+vvp torus_sim
+```
+
+---
+
+## 📜 License
+Distributed under the [MIT License](LICENSE).
+```
