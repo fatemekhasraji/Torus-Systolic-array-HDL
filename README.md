@@ -15,7 +15,7 @@ Unlike standard 2D mesh arrays, the **Torus topology** cyclically connects array
 ---
 
 ## 🏗 System Architecture & Datapath
-<img width="551" height="786" alt="image" src="https://github.com/user-attachments/assets/1e692bb4-16de-4220-adbc-2d05b38bf050" />
+
 ```mermaid
 graph TD
     subgraph Controller_FSM["Hardware Controller FSM (Controller.v)"]
