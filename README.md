@@ -81,4 +81,3 @@ torus-systolic-array-verilog/
 
 ## 📜 License
 Distributed under the [MIT License](LICENSE).
-```
