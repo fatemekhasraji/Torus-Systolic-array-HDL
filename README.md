@@ -73,7 +73,7 @@ torus-systolic-array-verilog/
 
 ## 🚀 How to Run Simulation
 
-### Via Xilinx Vivado XSim GUI / Command Line:
+### Via Xilinx Vivado:
 1. Open Vivado and load the source files from `rtl/` and testbench from `tb/`.
 2. Set `tb_direct_torus` as the top simulation module.
 3. Run behavioral simulation
