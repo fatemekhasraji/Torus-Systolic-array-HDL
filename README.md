@@ -29,7 +29,7 @@ Each **Processing Element (`PE.v`)** operates as a local Multiply-Accumulate (MA
 ## 🕹 Controller Finite State Machine (FSM)
 
 The FSM coordinates systolic data propagation and computation timing across the Torus array.
-<img width="551" height="786" alt="image" src="https://github.com/user-attachments/assets/1e692bb4-16de-4220-adbc-2d05b38bf050" />
+![The FSM used in the Controller](img/controller.png)
 
 | State | Control Signals | Function |
 | :--- | :--- | :--- |
