@@ -76,14 +76,7 @@ torus-systolic-array-verilog/
 ### Via Xilinx Vivado XSim GUI / Command Line:
 1. Open Vivado and load the source files from `rtl/` and testbench from `tb/`.
 2. Set `tb_direct_torus` as the top simulation module.
-3. Run behavioral simulation for `200 ns`.
-
-### Via Icarus Verilog (`iverilog`):
-```bash
-iverilog -o torus_sim rtl/Controller.v rtl/PE.v rtl/SA.v tb/tb_direct_torus.v
-vvp torus_sim
-```
-
+3. Run behavioral simulation
 ---
 
 ## 📜 License
